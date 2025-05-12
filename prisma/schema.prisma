@@ -1,0 +1,110 @@
+// Fullstack implementation plan for bakery stock app with PostgreSQL
+// Using: Express.js + Prisma (ORM) + Expo (React Native frontend)
+
+// === Backend (Node.js + Express + Prisma) ===
+// 1. Install dependencies:
+// npm install express cors jsonwebtoken bcrypt prisma @prisma/client dotenv
+
+// 2. Initialize Prisma:
+// npx prisma init
+
+// === schema.prisma ===
+// Save in prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Data model
+model Shop {
+  id          String      @id @default(uuid())
+  name        String
+  employees   Employee[]
+  products    Product[]   @relation("ShopProducts")
+  stock       ShopIngredient[]
+  logs        InventoryLog[]
+}
+
+model Employee {
+  id        String   @id @default(uuid())
+  name      String
+  role      Role
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  logs      InventoryLog[]
+}
+
+enum Role {
+  patissier
+  boulanger
+  caissier
+}
+
+model Product {
+  id              String             @id @default(uuid())
+  name            String
+  category        Category
+  ingredients     ProductIngredient[]
+  shops           Shop[]             @relation("ShopProducts")
+}
+
+enum Category {
+  patisserie
+  boulangerie
+  both
+}
+
+model Ingredient {
+  id          String               @id @default(uuid())
+  name        String
+  unit        String
+  stock       ShopIngredient[]
+  inProducts  ProductIngredient[]
+  logs        InventoryLog[]
+}
+
+model ProductIngredient {
+  productId     String
+  ingredientId  String
+  amountPerUnit Float
+
+  product       Product    @relation(fields: [productId], references: [id])
+  ingredient    Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@id([productId, ingredientId])
+}
+
+model ShopIngredient {
+  shopId       String
+  ingredientId String
+  quantity     Float
+
+  shop         Shop       @relation(fields: [shopId], references: [id])
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@id([shopId, ingredientId])
+}
+
+model InventoryLog {
+  id            String     @id @default(uuid())
+  shopId        String
+  ingredientId  String
+  employeeId    String
+  change        Float
+  reason        String
+  timestamp     DateTime   @default(now())
+
+  shop          Shop       @relation(fields: [shopId], references: [id])
+  ingredient    Ingredient @relation(fields: [ingredientId], references: [id])
+  employee      Employee   @relation(fields: [employeeId], references: [id])
+}
+
+// After saving schema:
+// npx prisma migrate dev --name init
+
+// === REST API Setup (Express) and Expo frontend will follow ===
